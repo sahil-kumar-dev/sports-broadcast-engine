@@ -24,11 +24,14 @@ matchRouter.get('/', async (req, res) => {
             .from(matches)
             .orderBy(desc(matches.createdAt))
             .limit(Math.min(parsed.data.limit || 50, 100))
+
         return res.status(200).json({
             message: "Matches fetched successfully",
             data: events
         })
-        
+
+
+
     } catch (error) {
         return res.status(500).json({ error: "Failed to fetch matches.", details: JSON.stringify(error) })
     }
@@ -39,6 +42,7 @@ matchRouter.post('/', async (req, res) => {
     const parsed = createMatchSchema.safeParse(req.body)
 
     if (!parsed.success) {
+        console.log(parsed.error.issues)
         return res.status(400).json({
             message: "Invalid request",
             errors: parsed.error.issues
@@ -54,17 +58,21 @@ matchRouter.post('/', async (req, res) => {
             awayScore: parsed.data.awayScore || 0,
             status: getMatchStatus(parsed.data.startTime, parsed.data.endTime, new Date()) || 'scheduled'
         }).returning()
+
+
+        if (res.app.locals.broadcastMatchCreated) {
+            res.app.locals.broadcastMatchCreated(event)
+        }
+
         return res.status(201).json({
             message: "Match created successfully",
             data: event
         })
     } catch (error) {
+        console.log(error)
         return res.status(500).json({ error: "Failed to create match.", details: JSON.stringify(error) })
     }
 
-    res.status(200).json({
-        message: "Hello World!"
-    })
 })
 
 export default matchRouter
